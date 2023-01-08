@@ -4,6 +4,7 @@ abstract class OperationStationElement {
   int currentCycle = 0;
   bool _busy = false;
   instruction.Instruction? _currentInstruction;
+  String? stationID;
   bool get busy => _busy;
   // notify listners somewhere
    double operate();
@@ -11,10 +12,11 @@ abstract class OperationStationElement {
     currentCycle = 0;
     _busy = false;
    }
-   void allocate (instruction.Instruction i ){
+   void allocate (instruction.Instruction i ,String id){
     _currentInstruction = i;
     _busy = true;
     currentCycle = 0;
+    stationID = id;
    }
 }
 class AddOperationElemnt extends OperationStationElement {
@@ -39,7 +41,7 @@ class MultOperationElemnt extends OperationStationElement {
   double operate(){
     // should be throwing errors or some shit
     if(_currentInstruction !=null && _busy){
-      if(_currentInstruction!.type == instruction.InstructionType.add ){
+      if(_currentInstruction!.type == instruction.InstructionType.mult ){
         return _currentInstruction!.operand1Val * _currentInstruction!.operand1Val;   
       }
       return -1;
@@ -54,7 +56,22 @@ class DivOperationElemnt extends OperationStationElement {
   double operate(){
     // should be throwing errors or some shit
     if(_currentInstruction !=null && _busy){
-      if(_currentInstruction!.type == instruction.InstructionType.add ){
+      if(_currentInstruction!.type == instruction.InstructionType.mult ){
+        return _currentInstruction!.operand1Val / _currentInstruction!.operand1Val;   
+      }
+      return -1;
+    }
+      return -1;
+
+  }
+}
+class MemoryOperationElemnt extends OperationStationElement {
+  
+  @override
+  double operate(){
+    // should be throwing errors or some shit
+    if(_currentInstruction !=null && _busy){
+      if(_currentInstruction!.type == instruction.InstructionType.mult ){
         return _currentInstruction!.operand1Val / _currentInstruction!.operand1Val;   
       }
       return -1;
@@ -92,10 +109,10 @@ class OperationStation {
 
   }
 
-  allocate (instruction.Instruction i){
+  allocate (instruction.Instruction i,String id){
     for(OperationStationElement e in stations){
       if(!e._busy){
-        e.allocate(i);
+        e.allocate(i,id);
 
       }
     }

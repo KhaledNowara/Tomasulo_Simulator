@@ -15,7 +15,7 @@ bool issueInstruction (Instruction i ){
 }
 
 void regCall (){
-  
+
 }
 void main(){
 

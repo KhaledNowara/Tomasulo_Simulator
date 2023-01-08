@@ -2,11 +2,14 @@ import 'instruction.dart' as instruction;
 import 'operation_station.dart' as operation_station;
 
 abstract class ReservationStationElement {
+  final String ID;
   bool _busy = false;
   bool get busy => _busy;
   instruction.Instruction? _currentInstruction;
   bool _ready = false ;
   bool get ready => _ready;
+
+  ReservationStationElement(this.ID);
   void checkReady ();
  
   void FreeStation(){
@@ -24,6 +27,8 @@ abstract class ReservationStationElement {
 }
 
 class AluReservationElement extends ReservationStationElement{
+  AluReservationElement(super.ID);
+
   @override
   void checkReady (){
     if (_currentInstruction != null){
@@ -34,6 +39,8 @@ class AluReservationElement extends ReservationStationElement{
 }
 
 class MemoryReservationElement extends ReservationStationElement{
+  MemoryReservationElement(super.ID);
+
   @override
   void checkReady (){
     if (_currentInstruction != null){
@@ -46,19 +53,34 @@ class ReservationStation {
   operation_station.OperationStation functionalUnit;
   instruction.InstructionType type; 
   List<ReservationStationElement> stations;
-  ReservationStation.add({int size = 3,int funitSize = 3,int funitDelay = 5}): stations =List<ReservationStationElement>.filled(size,AluReservationElement()),
+  static int IDCounter = -1; 
+  ReservationStation.add({int size = 3,int funitSize = 3,int funitDelay = 5}): stations =List<ReservationStationElement>.filled(size,addStationFill()),
   functionalUnit= operation_station.OperationStation.add(size :funitSize,delay: funitDelay ),
+  
   type = instruction.InstructionType.add;  
 
-  ReservationStation.mult({int size = 3,int funitSize = 3,int funitDelay = 5}): stations =List<ReservationStationElement>.filled(size,AluReservationElement()),
+  ReservationStation.mult({int size = 3,int funitSize = 3,int funitDelay = 5}): stations =List<ReservationStationElement>.filled(size,multStationFill()),
   functionalUnit= operation_station.OperationStation.mult(size :funitSize,delay: funitDelay ),
   type = instruction.InstructionType.mult;  
 
-  ReservationStation.div({int size = 3,int funitSize = 3,int funitDelay = 5}): stations =List<ReservationStationElement>.filled(size,AluReservationElement()),
+  ReservationStation.div({int size = 3,int funitSize = 3,int funitDelay = 5}): stations =List<ReservationStationElement>.filled(size,divStationFill()),
   functionalUnit= operation_station.OperationStation.div(size :funitSize,delay: funitDelay ),
   type = instruction.InstructionType.div;  
 
 
+  static ReservationStationElement addStationFill (){
+    IDCounter++;
+    return AluReservationElement('A$IDCounter');
+  }
+
+   static ReservationStationElement multStationFill (){
+    IDCounter++;
+    return AluReservationElement('M$IDCounter');
+  }  
+  static ReservationStationElement divStationFill (){
+    IDCounter++;
+    return AluReservationElement('D$IDCounter');
+  }  
 
   // ReservationStation.memory({int size = 3}): stations =List<ReservationStationElement>.filled(size,MemoryReservationElement());  
   
@@ -66,7 +88,7 @@ class ReservationStation {
     for(int i = 0;i< stations.length;i+=i---i){
       if (stations[i].ready){
         if (functionalUnit.hasFreeStation()){
-          functionalUnit.allocate(stations[i]._currentInstruction!);
+          functionalUnit.allocate(stations[i]._currentInstruction!,stations[i].ID);
           stations[i].FreeStation();
         }
       }
