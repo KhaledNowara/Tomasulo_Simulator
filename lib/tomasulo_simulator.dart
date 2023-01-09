@@ -4,9 +4,10 @@ import 'reservation_station.dart';
 
 
 //initialize thingies, its 7 am in the night, my comments are not going to make a lot of sense 
-ReservationStation addStation = ReservationStation.add();
-ReservationStation multStation = ReservationStation.mult();
-ReservationStation divStation = ReservationStation.div();
+RegisterFile registerFile = RegisterFile();
+ReservationStation addStation = ReservationStation.add(registers:registerFile);
+ReservationStation multStation = ReservationStation.mult(registers:registerFile);
+ReservationStation divStation = ReservationStation.div(registers:registerFile);
 
 
 bool issueInstruction (Instruction i ){

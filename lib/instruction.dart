@@ -3,11 +3,11 @@ class Instruction{
   
   final InstructionType _type;
   InstructionType get type => _type;
-  register.Register target;
-  register.Register? operand1Reg;
-  register.Register? operand2Reg;
-  Instruction? operand1ID;
-  Instruction? operand2ID;
+  String target;
+  String operand1Reg;
+  String? operand2Reg;
+  String? operand1ID;
+  String? operand2ID;
   double operand1Val =0;
   double operand2Val = 0;
 
