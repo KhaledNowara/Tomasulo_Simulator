@@ -13,6 +13,7 @@ abstract class OperationStationElement {
   bool get busy => _busy;
   // notify listners somewhere
 
+
   void addMostafasListener(Function() f) {
     MostafsListeners.add(f);
   }
@@ -54,6 +55,7 @@ abstract class OperationStationElement {
 }
 
 class AddOperationElement extends OperationStationElement {
+
   
   @override
   void operate(){
@@ -73,6 +75,7 @@ class AddOperationElement extends OperationStationElement {
 }
 
 class MultOperationElement extends OperationStationElement {
+
   
    @override
   void operate(){
@@ -95,6 +98,7 @@ class MultOperationElement extends OperationStationElement {
   }
 }
 class DivOperationElement extends OperationStationElement {
+
   
  @override
   void operate(){
@@ -114,6 +118,7 @@ class DivOperationElement extends OperationStationElement {
 
 
 class MemoryOperationElement extends OperationStationElement {
+
   @override
   void operate(){
     //Operation happens in the station
@@ -127,7 +132,9 @@ class OperationStation {
   OperationStation.add({int size = 3, this.delay = 5})
       : stations =
             List<OperationStationElement>.filled(size, AddOperationElement()),
-        type = instruction.InstructionType.add {fillListAdd();}
+        type = instruction.InstructionType.add {
+          print("fixing");
+          fillListAdd();}
   OperationStation.mult({int size = 3, this.delay = 5})
       : stations =
             List<OperationStationElement>.filled(size, MultOperationElement()),
@@ -162,14 +169,15 @@ class OperationStation {
   }
  void fillListMem (){
     List<MemoryOperationElement> l  = <MemoryOperationElement>[];
-    for(OperationStationElement e in stations ){
+    for(OperationStationElement e in stations){
        l.add(MemoryOperationElement());
     }
     stations = l;
   }
 void fillListAdd (){
     List<OperationStationElement> l  = <OperationStationElement>[];
-    for(OperationStationElement e in stations ){
+      for(OperationStationElement e in stations){
+    
        l.add(AddOperationElement());
       
     }
@@ -177,14 +185,16 @@ void fillListAdd (){
   }
   void fillListMult (){
     List<OperationStationElement> l  = <OperationStationElement>[];
-    for(OperationStationElement e in stations ){
+     for(OperationStationElement e in stations){
+    
        l.add(MultOperationElement());
+      
     }
     stations = l;
   }
     void fillListDiv (){
     List<OperationStationElement> l  = <OperationStationElement>[];
-    for(OperationStationElement e in stations ){
+      for(OperationStationElement e in stations){
        l.add(DivOperationElement());
     }
     stations = l;
@@ -203,6 +213,7 @@ void fillListAdd (){
       if(!e._busy){
         e.allocate(i,id);
         allocated =  true;
+        break;
       }
     }
     return allocated;
@@ -210,6 +221,8 @@ void fillListAdd (){
 
   void onClockTick (){
     operate();
+    print("Operation Station");
+
     print(toString());
   }
 }
@@ -219,7 +232,12 @@ class MemOperationStation extends OperationStation {
 
   MemOperationStation({int memSize = 100})
       : memory = List<double>.filled(memSize, 0),
-        super.mem();
+        super.mem(){
+     for (int i=0;i<memory.length;i++) {
+      double value=0;
+      memory[i]=value;
+      value++;
+     }}
 
   //final List<int> memory;
   @override
@@ -248,7 +266,7 @@ class MemOperationStation extends OperationStation {
       }
     }
 
-   
+
 
   }
 

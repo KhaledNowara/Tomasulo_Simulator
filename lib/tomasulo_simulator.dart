@@ -55,13 +55,27 @@ void main() {
   instructionQueue.add(Instruction.add(target: 'R11', operand1Reg: 'R7', operand2Reg:'R10'));
   instructionQueue.add(Instruction.add(target: 'R5', operand1Reg: 'R5', operand2Reg:'R11'));
 
-  
 //  apply add fix to rest of instructions 
 // test ba2y el instructions
 
 
     while(instructionQueue.isNotEmpty){
       onClockTick();
+
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('\n');
+      print('End Cycle');
+
     }
   
 

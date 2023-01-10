@@ -196,6 +196,7 @@ int? address;
   void onClockTick (){
       if (ready){
       issue(); 
+      print("Address Unit ");
       print(toString());
       }
 
@@ -369,13 +370,10 @@ class ReservationStation {
   }
 
   void onClockTick(){
-    for(ReservationStationElement s in stations){
-      print(s.ID);
-      print(s.currentInstruction?.target);
-    }
-    print ('............');
+
     execReady();
     functionalUnit.onClockTick();
+    print("Reservation Station $type");
     print(toString());
   }
   
