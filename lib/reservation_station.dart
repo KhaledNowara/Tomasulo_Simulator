@@ -275,8 +275,6 @@ class ReservationStation {
     return AluReservationElement('D$IDCounter', r);
   }
 
-
-
   
   void execReady (){
     for(int i = 0;i< stations.length;i+=i---i){
@@ -284,17 +282,11 @@ class ReservationStation {
         if (functionalUnit.hasFreeStation()){
           functionalUnit.allocate(stations[i],stations[i].ID);
 
-
-  void execReady() {
-    for (int i = 0; i < stations.length; i += i-- - i) {
-      if (stations[i].ready) {
-        if (functionalUnit.hasFreeStation()) {
-          functionalUnit.allocate(
-              stations[i]._currentInstruction!, stations[i].ID);
         }
       }
     }
   }
+  
 
   bool allocate(instruction.Instruction i) {
     if (i.type != type) return false;

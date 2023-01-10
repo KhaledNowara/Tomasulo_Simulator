@@ -15,8 +15,6 @@ class Instruction {
   int? addressOffset;
 
 
-  int? addressOffset; 
-
   Instruction.add({required this.target,required this.operand1Reg,required this.operand2Reg}):_type = InstructionType.add;
   Instruction.sub({required this.target,required this.operand1Reg,required this.operand2Reg}):_type = InstructionType.sub;
   Instruction.mult({required this.target,required this.operand1Reg,required this.operand2Reg}):_type = InstructionType.mult;

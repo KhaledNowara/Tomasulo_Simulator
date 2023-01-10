@@ -27,7 +27,7 @@ abstract class OperationStationElement {
   void removeMostafsListner(Function(String) f) {
     MostafsListeners.remove(f);
   }
-}
+
 
    void operate();
   void emptyStation() {
@@ -35,8 +35,9 @@ abstract class OperationStationElement {
     _busy = false;
     notifyMostafasListeners();
   }
-  void allocate(instruction.Instruction i, String id) {
-    _currentInstruction = i;
+  void allocate(ReservationStationElement i, String id) {
+    station = i;
+    _currentInstruction = i.currentInstruction;
     _busy = true;
     currentCycle = 0;
     stationID = id;
@@ -44,7 +45,7 @@ abstract class OperationStationElement {
   }
 }
 
-class AddOperationElemnt extends OperationStationElement {
+class AddOperationElement extends OperationStationElement {
   
   @override
   void operate(){
@@ -63,7 +64,7 @@ class AddOperationElemnt extends OperationStationElement {
   }
 }
 
-class MultOperationElemnt extends OperationStationElement {
+class MultOperationElement extends OperationStationElement {
   
    @override
   void operate(){
@@ -80,7 +81,7 @@ class MultOperationElemnt extends OperationStationElement {
     throw Exception('Instruction not found');
   }
 }
-class DivOperationElemnt extends OperationStationElement {
+class DivOperationElement extends OperationStationElement {
   
  @override
   void operate(){

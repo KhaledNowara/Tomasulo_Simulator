@@ -13,12 +13,9 @@ ReservationStation divStation = ReservationStation.div(registers:registerFile);
 Queue <Instruction>? instructionQueue;
 
 
-bool issueInstruction (Instruction i ){
-  return addStation.allocate(i) || multStation.allocate(i)|| divStation.allocate(i);
-  
-}
 
-void regCall (){
+
+
 
 
 bool issueInstruction(Instruction i) {
