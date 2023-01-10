@@ -36,11 +36,15 @@ abstract class ReservationStationElement {
   void notifyListeners (double data){
     for(Function(double) f in listeners){
       f(data);
+      removeListner(f);
     }
   }
   void removeListner (Function(double) f){
     listeners.remove(f);
   }
+
+
+
   void listenFirstOperand (double data){
     if (_currentInstruction!=null){
       _currentInstruction!.operand1Val = data;
@@ -49,6 +53,7 @@ abstract class ReservationStationElement {
 
     }
   }
+
     void listenSecondOperand (double data){
     if (_currentInstruction!=null){
       _currentInstruction!.operand2Val = data;
@@ -149,7 +154,7 @@ class ReservationStation {
       if (stations[i].ready){
         if (functionalUnit.hasFreeStation()){
           functionalUnit.allocate(stations[i]._currentInstruction!,stations[i].ID);
-          stations[i].freeStation();
+
         }
       }
     }

@@ -19,8 +19,17 @@ class Register {
 
   void waitOn (String id, Function(Function (double)) addListener){
     opID = id;
+    addListener(listen);
     this.addListener = addListener;
   }
+
+
+  void listen (double data){
+    value = data; 
+    opID = null;
+    addListener = null;
+  }
+
 }
 
 class RegisterFile{

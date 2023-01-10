@@ -87,7 +87,10 @@ class OperationStation {
   OperationStation.add({int size = 3, this.delay = 5}): stations =List<OperationStationElement>.filled(size,AddOperationElemnt()),type = instruction.InstructionType.add;  
   OperationStation.mult({int size = 3, this.delay = 5}): stations =List<OperationStationElement>.filled(size,MultOperationElemnt()),type = instruction.InstructionType.mult;  
   OperationStation.div({int size = 3, this.delay = 5}): stations =List<OperationStationElement>.filled(size,DivOperationElemnt()),type = instruction.InstructionType.div;  
-
+  OperationStation.mem({int size = 3, this.delay = 5})
+      : stations =
+            List<OperationStationElement>.filled(size, MemoryOperationElemnt()),
+        type = instruction.InstructionType.load;
   void operate(){
     for (int i = 0 ; i < stations.length; i+= i---i){
       if (stations[i].busy){
@@ -114,6 +117,37 @@ class OperationStation {
       if(!e._busy){
         e.allocate(i,id);
 
+      }
+    }
+  }
+}
+class MemOperationStation extends OperationStation {
+  final List<double> memory;
+
+  MemOperationStation({int memSize = 100})
+      : memory = List<double>.filled(memSize, 0),
+        super.mem();
+
+  //final List<int> memory;
+  @override
+  void operate() {
+    double result = 0.0;
+    for (int i = 0; i < stations.length; i += i-- - i) {
+
+      if (stations[i].busy) {
+        stations[i].currentCycle++;
+        if (stations[i].currentCycle == delay) {
+          if (stations[i]._currentInstruction!.type ==
+              instruction.InstructionType.load) {
+               result=
+                memory[stations[i]._currentInstruction!.addressOffset!];
+                // publish result
+          } else if (stations[i]._currentInstruction!.type ==
+              instruction.InstructionType.store) {
+            memory[stations[i]._currentInstruction!.addressOffset!] =
+                stations[i]._currentInstruction!.operand1Val;
+          }
+        }
       }
     }
   }
