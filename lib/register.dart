@@ -8,8 +8,10 @@ class Register {
   String? opID;
   Function(Function(double))? addListener;
 
+
+@override
   String toString() {
-    return ('$value');
+    return ('$value,$opID');
   }
 
   Tuple2<double, String?> getRegister(Function(double) listner) {
@@ -51,10 +53,10 @@ class RegisterFile {
   HashMap registers = HashMap<String, Register>();
 
   RegisterFile() {
-    for (int i = 0; i < 10; i += i-- - i) {
+    for (int i = 0; i < 13; i += i-- - i) {
       registers.putIfAbsent('R$i', () => Register());
     }
-    for (int i = 0; i < 10; i += i-- - i) {
+    for (int i = 0; i < 13; i += i-- - i) {
       registers.putIfAbsent('F$i', () => Register());
     }
   }
@@ -71,7 +73,6 @@ class RegisterFile {
 
 void main() {
   RegisterFile r = RegisterFile();
-  print(r.registers['F0']);
 }
 
 

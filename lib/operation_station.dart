@@ -1,4 +1,3 @@
-import 'dart:html';
 
 import 'instruction.dart' as instruction;
 import 'reservation_station.dart' ;
@@ -43,6 +42,15 @@ abstract class OperationStationElement {
     stationID = id;
     notifyMostafasListeners();
   }
+
+@override
+  String toString (){
+    return('busy : $busy, $_currentInstruction');
+  }
+ 
+
+
+  
 }
 
 class AddOperationElement extends OperationStationElement {
@@ -57,9 +65,9 @@ class AddOperationElement extends OperationStationElement {
         emptyStation();
         notifyMostafasListeners();
 
-      }
+      }else
      throw Exception('Invalid Instruction');
-    }
+    }else
     throw Exception('Instruction not found');
   }
 }
@@ -71,14 +79,19 @@ class MultOperationElement extends OperationStationElement {
     // should be throwing errors or some shit
     if(_currentInstruction !=null && _busy){
       if(_currentInstruction!.type == instruction.InstructionType.mult ){
+        
+
         station!.notifyListeners(_currentInstruction!.operand1Val * _currentInstruction!.operand1Val); 
         station!.freeStation();
         emptyStation();      
         notifyMostafasListeners();
       }
-      throw Exception('Invalid Instruction');
+      else{
+        throw Exception('Invalid Instruction');
+      }
+    }else{
+      throw Exception('Instruction not found');
     }
-    throw Exception('Instruction not found');
   }
 }
 class DivOperationElement extends OperationStationElement {
@@ -92,9 +105,9 @@ class DivOperationElement extends OperationStationElement {
         station!.freeStation();
         emptyStation(); 
         notifyMostafasListeners();
-      }
+      }else
       throw Exception('Invalid Instruction');
-    }
+    }else
     throw Exception('Instruction not found');
   }
 }
@@ -108,25 +121,25 @@ class MemoryOperationElement extends OperationStationElement {
 }
 
 class OperationStation {
-  final List<OperationStationElement> stations;
+  List<OperationStationElement> stations;
   int delay;
   instruction.InstructionType type;
   OperationStation.add({int size = 3, this.delay = 5})
       : stations =
             List<OperationStationElement>.filled(size, AddOperationElement()),
-        type = instruction.InstructionType.add;
+        type = instruction.InstructionType.add {fillListAdd();}
   OperationStation.mult({int size = 3, this.delay = 5})
       : stations =
             List<OperationStationElement>.filled(size, MultOperationElement()),
-        type = instruction.InstructionType.mult;
+        type = instruction.InstructionType.mult{fillListMult();}
   OperationStation.div({int size = 3, this.delay = 5})
       : stations =
             List<OperationStationElement>.filled(size, DivOperationElement()),
-        type = instruction.InstructionType.div;
+        type = instruction.InstructionType.div{fillListDiv();}
   OperationStation.mem({int size = 3, this.delay = 5})
       : stations = List<OperationStationElement>.filled(
             size, MemoryOperationElement()),
-        type = instruction.InstructionType.load;
+        type = instruction.InstructionType.load{fillListMem();}
   void operate() {
     for (int i = 0; i < stations.length; i += i-- - i) {
       if (stations[i].busy) {
@@ -137,7 +150,45 @@ class OperationStation {
       }
     }
   }
-
+@override
+  String toString() {
+    String s = '';
+    for(OperationStationElement e in stations){
+      s += e.toString();
+      s += '\n'; 
+    }
+    s += '............';
+    return s;
+  }
+ void fillListMem (){
+    List<MemoryOperationElement> l  = <MemoryOperationElement>[];
+    for(OperationStationElement e in stations ){
+       l.add(MemoryOperationElement());
+    }
+    stations = l;
+  }
+void fillListAdd (){
+    List<OperationStationElement> l  = <OperationStationElement>[];
+    for(OperationStationElement e in stations ){
+       l.add(AddOperationElement());
+      
+    }
+    stations = l;
+  }
+  void fillListMult (){
+    List<OperationStationElement> l  = <OperationStationElement>[];
+    for(OperationStationElement e in stations ){
+       l.add(MultOperationElement());
+    }
+    stations = l;
+  }
+    void fillListDiv (){
+    List<OperationStationElement> l  = <OperationStationElement>[];
+    for(OperationStationElement e in stations ){
+       l.add(DivOperationElement());
+    }
+    stations = l;
+  }
   bool hasFreeStation() {
     for (OperationStationElement e in stations) {
       if (!e._busy) return true;
@@ -146,14 +197,20 @@ class OperationStation {
   }
 
 
-  allocate (ReservationStationElement i,String id){
+  bool allocate (ReservationStationElement i,String id){
+    bool allocated = false;
     for(OperationStationElement e in stations){
       if(!e._busy){
         e.allocate(i,id);
-
-
+        allocated =  true;
       }
     }
+    return allocated;
+  }
+
+  void onClockTick (){
+    operate();
+    print(toString());
   }
 }
 
@@ -190,5 +247,10 @@ class MemOperationStation extends OperationStation {
         }
       }
     }
+
+   
+
   }
+
+
 }

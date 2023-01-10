@@ -21,8 +21,10 @@ class Instruction {
   Instruction.div({required this.target,required this.operand1Reg,required this.operand2Reg}):_type = InstructionType.div;
   Instruction.load({required this.target,required this.operand2Reg,required this.addressOffset}):_type = InstructionType.load;
   Instruction.store({required this.operand1Reg,required this.operand2Reg,required this.addressOffset}):_type = InstructionType.store;
-
-
+@override
+String toString(){
+  return ('type : $type , target :$target, v1 : $operand1Val, v2 : $operand2Val, o1: $operand1ID, o2: $operand1ID');
+}
 }
 
 enum InstructionType { add, sub, mult, div, load, store }
