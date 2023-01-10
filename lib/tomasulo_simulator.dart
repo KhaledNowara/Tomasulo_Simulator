@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'instruction.dart';
 import 'register.dart';
 import 'reservation_station.dart';
@@ -8,6 +9,7 @@ RegisterFile registerFile = RegisterFile();
 ReservationStation addStation = ReservationStation.add(registers:registerFile);
 ReservationStation multStation = ReservationStation.mult(registers:registerFile);
 ReservationStation divStation = ReservationStation.div(registers:registerFile);
+Queue <Instruction>? instructionQueue;
 
 
 bool issueInstruction (Instruction i ){

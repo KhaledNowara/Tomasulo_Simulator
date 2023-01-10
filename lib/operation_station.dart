@@ -1,83 +1,91 @@
+import 'dart:html';
+
 import 'instruction.dart' as instruction;
+import 'reservation_station.dart' ;
+
 
 abstract class OperationStationElement {
   int currentCycle = 0;
   bool _busy = false;
+  ReservationStationElement? station; 
   instruction.Instruction? _currentInstruction;
   String? stationID;
   bool get busy => _busy;
   // notify listners somewhere
-   double operate();
+   void operate();
    void emptyStation(){
     currentCycle = 0;
     _busy = false;
    }
-   void allocate (instruction.Instruction i ,String id){
-    _currentInstruction = i;
+   void allocate (ReservationStationElement i ,String id){
+    station = i;
+    _currentInstruction = i.currentInstruction;
     _busy = true;
     currentCycle = 0;
     stationID = id;
    }
+
 }
+
 class AddOperationElemnt extends OperationStationElement {
   
   @override
-  double operate(){
+  void operate(){
     // should be throwing errors or some shit
     if(_currentInstruction !=null && _busy){
       if(_currentInstruction!.type == instruction.InstructionType.add ){
-        return _currentInstruction!.operand1Val + _currentInstruction!.operand1Val;   
-      }
-      return -1;
-    }
-      return -1;
+        station!.notifyListeners(_currentInstruction!.operand1Val + _currentInstruction!.operand1Val);   
+        station!.freeStation();
+        emptyStation();
 
+      }
+     throw Exception('Invalid Instruction');
+    }
+    throw Exception('Instruction not found');
   }
 }
 
 class MultOperationElemnt extends OperationStationElement {
   
-  @override
-  double operate(){
+   @override
+  void operate(){
     // should be throwing errors or some shit
     if(_currentInstruction !=null && _busy){
       if(_currentInstruction!.type == instruction.InstructionType.mult ){
-        return _currentInstruction!.operand1Val * _currentInstruction!.operand1Val;   
+        station!.notifyListeners(_currentInstruction!.operand1Val * _currentInstruction!.operand1Val); 
+        station!.freeStation();
+        emptyStation();      
       }
-      return -1;
+      throw Exception('Invalid Instruction');
     }
-      return -1;
+    throw Exception('Instruction not found');
+
+
 
   }
 }
 class DivOperationElemnt extends OperationStationElement {
   
-  @override
-  double operate(){
+ @override
+  void operate(){
     // should be throwing errors or some shit
     if(_currentInstruction !=null && _busy){
-      if(_currentInstruction!.type == instruction.InstructionType.mult ){
-        return _currentInstruction!.operand1Val / _currentInstruction!.operand1Val;   
+      if(_currentInstruction!.type == instruction.InstructionType.div ){
+        station!.notifyListeners(_currentInstruction!.operand1Val / _currentInstruction!.operand1Val);  
+        station!.freeStation();
+        emptyStation(); 
       }
-      return -1;
+      throw Exception('Invalid Instruction');
     }
-      return -1;
+    throw Exception('Instruction not found');
 
   }
 }
 class MemoryOperationElemnt extends OperationStationElement {
   
   @override
-  double operate(){
-    // should be throwing errors or some shit
-    if(_currentInstruction !=null && _busy){
-      if(_currentInstruction!.type == instruction.InstructionType.mult ){
-        return _currentInstruction!.operand1Val / _currentInstruction!.operand1Val;   
-      }
-      return -1;
-    }
-      return -1;
-
+  void operate(){
+    //Operation happens in the station
   }
 }
 class OperationStation {
@@ -112,7 +120,7 @@ class OperationStation {
 
   }
 
-  allocate (instruction.Instruction i,String id){
+  allocate (ReservationStationElement i,String id){
     for(OperationStationElement e in stations){
       if(!e._busy){
         e.allocate(i,id);
@@ -131,7 +139,7 @@ class MemOperationStation extends OperationStation {
   //final List<int> memory;
   @override
   void operate() {
-    double result = 0.0;
+
     for (int i = 0; i < stations.length; i += i-- - i) {
 
       if (stations[i].busy) {
@@ -139,13 +147,15 @@ class MemOperationStation extends OperationStation {
         if (stations[i].currentCycle == delay) {
           if (stations[i]._currentInstruction!.type ==
               instruction.InstructionType.load) {
-               result=
-                memory[stations[i]._currentInstruction!.addressOffset!];
-                // publish result
+                stations[i].station!.notifyListeners( memory[stations[i]._currentInstruction!.addressOffset!]);
+                stations[i].station!.freeStation();
+                stations[i].emptyStation();
           } else if (stations[i]._currentInstruction!.type ==
               instruction.InstructionType.store) {
-            memory[stations[i]._currentInstruction!.addressOffset!] =
+              memory[stations[i]._currentInstruction!.addressOffset!] =
                 stations[i]._currentInstruction!.operand1Val;
+                stations[i].station!.freeStation();
+                stations[i].emptyStation();
           }
         }
       }

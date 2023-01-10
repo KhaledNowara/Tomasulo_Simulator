@@ -13,12 +13,17 @@ abstract class ReservationStationElement {
   bool _busy = false;
   bool get busy => _busy;
   instruction.Instruction? _currentInstruction;
+  instruction.Instruction? get currentInstruction => _currentInstruction;
   bool _ready = false ;
   bool get ready => _ready;
   List<Function(double)> listeners = <Function(double)>[];
   RegisterFile registers;
   ReservationStationElement(this.ID,this.registers);
   void checkReady ();
+
+  instruction.InstructionType? getType (){
+    return _currentInstruction?.type;
+  }
  
   void freeStation (){
     _busy = false;
@@ -67,6 +72,78 @@ abstract class ReservationStationElement {
   
 }
 
+class AddressUnit extends ReservationStationElement{
+MemoryBuffer loadBuffer;
+MemoryBuffer storeBuffer;
+int? address;
+
+  AddressUnit(super.ID, super.registers,this.loadBuffer, this.storeBuffer); 
+
+
+  @override
+  void checkReady() {
+      _ready = _currentInstruction!.operand2ID !=null;
+  }
+
+  @override
+  void getData() {
+         Tuple2<double,String?> res  = registers.getRegister(_currentInstruction!.operand2Reg!, listenSecondOperand); 
+          _currentInstruction!.operand2Val = res.item1;
+          _currentInstruction!.operand2ID = res.item2;
+          
+  }
+  @override
+  void listenSecondOperand (double data){
+    if (_currentInstruction!=null){
+      _currentInstruction!.operand2Val = data;
+      _currentInstruction!.operand2ID = null;
+      address = (data + _currentInstruction!.addressOffset!).round();
+      checkReady();
+      issue(); 
+
+    }
+  }
+
+  void issue (){
+    switch (_currentInstruction!.type){
+      case instruction.InstructionType.load :issueLoad(); break;
+      case instruction.InstructionType.store :issueStore(); break;
+      
+      case instruction.InstructionType.add:
+        // TODO: Handle this case.
+        break;
+      case instruction.InstructionType.sub:
+        // TODO: Handle this case.
+        break;
+      case instruction.InstructionType.mult:
+        // TODO: Handle this case.
+        break;
+      case instruction.InstructionType.div:
+        // TODO: Handle this case.
+        break;
+      case instruction.InstructionType.load:
+        // TODO: Handle this case.
+        break;
+      case instruction.InstructionType.store:
+        // TODO: Handle this case.
+        break;
+    }
+  }
+  bool issueStore (){
+    if(!storeBuffer.checkConflict(address!) &&loadBuffer.checkConflict(address!)){
+      return storeBuffer.allocate(_currentInstruction!);
+    }
+    return false;
+  }
+  bool issueLoad (){
+    if (!storeBuffer.checkConflict(address!)){
+      return loadBuffer.allocate(_currentInstruction!);
+    }
+    return false;
+
+  }
+
+}
 class AluReservationElement extends ReservationStationElement{
   AluReservationElement(super.ID,super.registers);
 
@@ -79,8 +156,8 @@ class AluReservationElement extends ReservationStationElement{
 
   @override
    void getData (){
-          registers.waitOn(_currentInstruction!.target, ID, addListener);
-          Tuple2<double,String?>  res  = registers.getRegister(_currentInstruction!.operand1Reg, listenFirstOperand); 
+          registers.waitOn(_currentInstruction!.target!, ID, addListener);
+          Tuple2<double,String?>  res  = registers.getRegister(_currentInstruction!.operand1Reg!, listenFirstOperand); 
           _currentInstruction!.operand1Val = res.item1;
           _currentInstruction!.operand1ID = res.item2;
           res  = registers.getRegister(_currentInstruction!.operand2Reg!, listenSecondOperand); 
@@ -91,8 +168,31 @@ class AluReservationElement extends ReservationStationElement{
 
 }
 
-class MemoryReservationElement extends ReservationStationElement{
-  MemoryReservationElement(super.ID,super.registers);
+abstract class MemoryOperationElement extends ReservationStationElement {
+    double? address;
+
+  MemoryOperationElement(super.ID, super.registers);
+    
+    
+}
+class LoadReservationElement extends MemoryOperationElement{
+
+  LoadReservationElement(super.ID,super.registers);
+
+  @override
+  void checkReady (){
+  }
+
+
+  @override
+   void getData (){
+          registers.waitOn(_currentInstruction!.target!, ID, addListener);
+          _ready = true; 
+   }
+
+}
+class StoreReservationElement extends MemoryOperationElement{
+  StoreReservationElement(super.ID,super.registers);
 
   @override
   void checkReady (){
@@ -104,8 +204,7 @@ class MemoryReservationElement extends ReservationStationElement{
 
   @override
    void getData (){
-          registers.waitOn(_currentInstruction!.target, ID, addListener);
-          Tuple2<double,String?>  res  = registers.getRegister(_currentInstruction!.operand1Reg, listenFirstOperand); 
+          Tuple2<double,String?>  res  = registers.getRegister(_currentInstruction!.operand1Reg!, listenFirstOperand); 
           _currentInstruction!.operand1Val = res.item1;
           _currentInstruction!.operand1ID = res.item2;
           checkReady();
@@ -132,6 +231,11 @@ class ReservationStation {
   functionalUnit= operation_station.OperationStation.div(size :funitSize,delay: funitDelay ),
   type = instruction.InstructionType.div;  
 
+  ReservationStation.load({int size = 3,required this.functionalUnit,required this.registers}): stations =List<ReservationStationElement>.empty(),
+  type = instruction.InstructionType.load;
+
+  ReservationStation.store({int size = 3,required this.functionalUnit,required this.registers}): stations =List<ReservationStationElement>.empty(),
+  type = instruction.InstructionType.load;  
 
   static ReservationStationElement addStationFill (RegisterFile r){
     IDCounter++;
@@ -147,13 +251,13 @@ class ReservationStation {
     return AluReservationElement('D$IDCounter',r);
   }  
 
-  // ReservationStation.memory({int size = 3}): stations =List<ReservationStationElement>.filled(size,MemoryReservationElement());  
+
   
   void execReady (){
     for(int i = 0;i< stations.length;i+=i---i){
       if (stations[i].ready){
         if (functionalUnit.hasFreeStation()){
-          functionalUnit.allocate(stations[i]._currentInstruction!,stations[i].ID);
+          functionalUnit.allocate(stations[i],stations[i].ID);
 
         }
       }
@@ -174,4 +278,28 @@ class ReservationStation {
   }
 
 
+}
+class MemoryBuffer extends ReservationStation{
+  List<MemoryOperationElement> real_stations;
+
+  MemoryBuffer.load({int size = 3,required super.functionalUnit, required super.registers}) :real_stations =List<MemoryOperationElement>.filled(size,loadStationFill(registers)), super.load();
+  MemoryBuffer.store({int size = 3,required super.functionalUnit, required super.registers}) : real_stations =List<MemoryOperationElement>.filled(size,storeStationFill(registers)),super.store();
+
+  static MemoryOperationElement loadStationFill (RegisterFile r){
+    ReservationStation.IDCounter++;
+    return LoadReservationElement('L$ReservationStation.IDCounter',r);
+  }
+  static MemoryOperationElement storeStationFill (RegisterFile r){
+    ReservationStation.IDCounter++;
+    return StoreReservationElement('S$ReservationStation.IDCounter',r);
+  }  
+  
+  bool checkConflict (int c_address){
+    for(MemoryOperationElement e in real_stations){
+      if (e.address ==c_address){
+        return true;
+      }
+    }
+    return false;
+  }
 }

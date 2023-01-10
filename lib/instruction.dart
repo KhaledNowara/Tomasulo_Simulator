@@ -3,8 +3,8 @@ class Instruction{
   
   final InstructionType _type;
   InstructionType get type => _type;
-  String target;
-  String operand1Reg;
+  String? target;
+  String? operand1Reg;
   String? operand2Reg;
   String? operand1ID;
   String? operand2ID;
@@ -17,8 +17,8 @@ class Instruction{
   Instruction.sub({required this.target,required this.operand1Reg,required this.operand2Reg}):_type = InstructionType.sub;
   Instruction.mult({required this.target,required this.operand1Reg,required this.operand2Reg}):_type = InstructionType.mult;
   Instruction.div({required this.target,required this.operand1Reg,required this.operand2Reg}):_type = InstructionType.div;
-  Instruction.load({required this.target,required this.operand1Reg,required this.addressOffset}):_type = InstructionType.load;
-  Instruction.store({required this.target,required this.operand1Reg,required this.addressOffset}):_type = InstructionType.store;
+  Instruction.load({required this.target,required this.operand2Reg,required this.addressOffset}):_type = InstructionType.load;
+  Instruction.store({required this.operand1Reg,required this.operand2Reg,required this.addressOffset}):_type = InstructionType.store;
 
 }
 
