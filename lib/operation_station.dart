@@ -61,14 +61,20 @@ class AddOperationElement extends OperationStationElement {
   void operate(){
     // should be throwing errors or some shit
     if(_currentInstruction !=null && _busy){
+      
       if(_currentInstruction!.type == instruction.InstructionType.add ){
         station!.notifyListeners(_currentInstruction!.operand1Val + _currentInstruction!.operand1Val);   
         station!.freeStation();
         emptyStation();
         notifyMostafasListeners();
 
+      }else if (_currentInstruction!.type == instruction.InstructionType.sub){
+            station!.notifyListeners(_currentInstruction!.operand1Val - _currentInstruction!.operand1Val);   
+        station!.freeStation();
+        emptyStation();
+        notifyMostafasListeners();
       }else
-     throw Exception('Invalid Instruction');
+     throw Exception('Invalid Instruction ' + _currentInstruction!.type.toString());
     }else
     throw Exception('Instruction not found');
   }
@@ -88,6 +94,13 @@ class MultOperationElement extends OperationStationElement {
         station!.freeStation();
         emptyStation();      
         notifyMostafasListeners();
+      }else if (_currentInstruction!.type == instruction.InstructionType.div ){
+        
+
+        station!.notifyListeners(_currentInstruction!.operand1Val / _currentInstruction!.operand2Val); 
+        station!.freeStation();
+        emptyStation();      
+        notifyMostafasListeners();
       }
       else{
         throw Exception('Invalid Instruction');
@@ -97,25 +110,6 @@ class MultOperationElement extends OperationStationElement {
     }
   }
 }
-class DivOperationElement extends OperationStationElement {
-
-  
- @override
-  void operate(){
-    // should be throwing errors or some shit
-    if(_currentInstruction !=null && _busy){
-      if(_currentInstruction!.type == instruction.InstructionType.div ){
-        station!.notifyListeners(_currentInstruction!.operand1Val / _currentInstruction!.operand1Val);  
-        station!.freeStation();
-        emptyStation(); 
-        notifyMostafasListeners();
-      }else
-      throw Exception('Invalid Instruction');
-    }else
-    throw Exception('Instruction not found');
-  }
-}
-
 
 class MemoryOperationElement extends OperationStationElement {
 
@@ -129,24 +123,21 @@ class OperationStation {
   List<OperationStationElement> stations;
   int delay;
   instruction.InstructionType type;
-  OperationStation.add({int size = 3, this.delay = 5})
+  OperationStation.add({int size = 3, delay = 5})
       : stations =
             List<OperationStationElement>.filled(size, AddOperationElement()),
-        type = instruction.InstructionType.add {
-          print("fixing");
+        type = instruction.InstructionType.add ,this.delay = delay +1{
           fillListAdd();}
-  OperationStation.mult({int size = 3, this.delay = 5})
+  OperationStation.mult({int size = 3, delay = 5})
       : stations =
             List<OperationStationElement>.filled(size, MultOperationElement()),
-        type = instruction.InstructionType.mult{fillListMult();}
-  OperationStation.div({int size = 3, this.delay = 5})
-      : stations =
-            List<OperationStationElement>.filled(size, DivOperationElement()),
-        type = instruction.InstructionType.div{fillListDiv();}
-  OperationStation.mem({int size = 3, this.delay = 5})
+        type = instruction.InstructionType.mult,this.delay = delay +1{fillListMult();}
+
+  OperationStation.mem({int size = 3, int delay = 5})
       : stations = List<OperationStationElement>.filled(
             size, MemoryOperationElement()),
-        type = instruction.InstructionType.load{fillListMem();}
+        type = instruction.InstructionType.load,
+        this.delay = delay +1{fillListMem();}
   void operate() {
     for (int i = 0; i < stations.length; i += i-- - i) {
       if (stations[i].busy) {
@@ -192,13 +183,7 @@ void fillListAdd (){
     }
     stations = l;
   }
-    void fillListDiv (){
-    List<OperationStationElement> l  = <OperationStationElement>[];
-      for(OperationStationElement e in stations){
-       l.add(DivOperationElement());
-    }
-    stations = l;
-  }
+
   bool hasFreeStation() {
     for (OperationStationElement e in stations) {
       if (!e._busy) return true;
@@ -221,23 +206,26 @@ void fillListAdd (){
 
   void onClockTick (){
     operate();
-    print("Operation Station");
-
-    print(toString());
   }
 }
 
 class MemOperationStation extends OperationStation {
   final List<double> memory;
 
-  MemOperationStation({int memSize = 100})
+  MemOperationStation({int memSize = 100,super.delay = 2})
       : memory = List<double>.filled(memSize, 0),
         super.mem(){
-     for (int i=0;i<memory.length;i++) {
       double value=0;
+     for (int i=0;i<memory.length;i++) {
       memory[i]=value;
       value++;
      }}
+
+    @override
+    void onClockTick (){
+    operate();
+
+  }
 
   //final List<int> memory;
   @override
@@ -247,16 +235,21 @@ class MemOperationStation extends OperationStation {
       if (stations[i].busy) {
         stations[i].currentCycle++;
         if (stations[i].currentCycle == delay) {
+          int address =(stations[i]._currentInstruction!.addressOffset!+stations[i]._currentInstruction!.operand2Val).round();
+          if (address >= memory.length){
+            String s =  stations[i]._currentInstruction.toString();
+            throw Exception("Index out of bounds of the memory, $s");
+          }
           if (stations[i]._currentInstruction!.type ==
               instruction.InstructionType.load) {
 
-                stations[i].station!.notifyListeners( memory[stations[i]._currentInstruction!.addressOffset!]);
+                stations[i].station!.notifyListeners( memory[address]);
                 stations[i].station!.freeStation();
                 stations[i].emptyStation();
 
           } else if (stations[i]._currentInstruction!.type ==
               instruction.InstructionType.store) {
-              memory[stations[i]._currentInstruction!.addressOffset!] =
+              memory[address] =
                 stations[i]._currentInstruction!.operand1Val;
 
                 stations[i].station!.freeStation();

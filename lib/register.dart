@@ -69,6 +69,12 @@ class RegisterFile {
       String regName, String id, Function(Function(double)) addListener) {
     registers[regName].waitOn(id, addListener);
   }
+@override
+  String toString() {
+    String s =  "Register file \n";
+    s += registers.toString();
+    return s;
+  }
 }
 
 void main() {

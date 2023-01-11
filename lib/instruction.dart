@@ -28,7 +28,7 @@ class Instruction {
   Instruction.store({required this.operand1Reg,required this.operand2Reg,required this.addressOffset}):_type = InstructionType.store;
 @override
 String toString(){
-  return ('type : $type , target :$target, v1 : $operand1Val, v2 : $operand2Val, o1: $operand1ID, o2: $operand1ID');
+  return ('type : $type , target :$target, v1 : $operand1Val, v2 : $operand2Val, o1: $operand1ID, o2: $operand2ID');
 }
 }
 
@@ -38,11 +38,12 @@ Queue <Instruction> instructionQueue = Queue <Instruction> ();
   ReservationStation mult;
   AddressUnit addressUnit;
   
-late Instruction currentInstruction;
+late Instruction? currentInstruction;
   InstructionQueue(List<Instruction> l, this.add, this.mult,this.addressUnit){
     for (Instruction i in l){
       instructionQueue.add(i);
     }
+    if(instructionQueue.isNotEmpty)
     currentInstruction = instructionQueue.first;
   }
 bool issueInstruction(Instruction i) {
@@ -52,14 +53,24 @@ bool issueInstruction(Instruction i) {
 }
 
   void onClockTick(){
-      if(instructionQueue.isNotEmpty){
+    if(instructionQueue.isNotEmpty&& !addressUnit.busy){
     if (issueInstruction(instructionQueue.first)){
       instructionQueue.removeFirst();
     }
+    if(instructionQueue.isNotEmpty)
     currentInstruction = instructionQueue.first;
+    else currentInstruction = null; 
+  }
+  }
+    String? getCurrentInstruction (){
+      if(instructionQueue.isNotEmpty){
+    return instructionQueue.first.toString();
+      }
+      else return null;
   }
 
-  }
+
+
 }
 
 enum InstructionType { add, sub, mult, div, load, store }

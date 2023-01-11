@@ -34,14 +34,15 @@ abstract class ReservationStationElement {
   void freeStation (){
     _busy = false;
     _ready = false;
+    operating = false;
     notifyMostafasListeners();
   }
 
   void allocate(instruction.Instruction i) {
     _currentInstruction = i;
     _busy = true;
+    _ready = false;
     getData();
-    checkReady();
     notifyMostafasListeners();
   }
 
@@ -79,8 +80,9 @@ abstract class ReservationStationElement {
     if (_currentInstruction != null) {
       _currentInstruction!.operand1Val = data;
       _currentInstruction!.operand1ID = null;
-      notifyMostafasListeners();
       checkReady();
+
+      notifyMostafasListeners();
     }
   }
 
@@ -107,25 +109,29 @@ int? address;
 
   @override
   void checkReady() {
-      _ready = _currentInstruction!.operand2ID !=null;
+      if(!_busy) {_ready = false;}
+      else{
+      _ready = _currentInstruction!.operand2ID ==null;
+      }
   }
+
 
   @override
   void getData() {
+        if (_currentInstruction!.target != null){
+          registers.waitOn(_currentInstruction!.target!, ID, addListener);
+        }
          Tuple2<double,String?> res  = registers.getRegister(_currentInstruction!.operand2Reg!, listenSecondOperand); 
           _currentInstruction!.operand2Val = res.item1;
-          _currentInstruction!.operand2ID = res.item2;
-          checkReady();
-          
+          _currentInstruction!.operand2ID = res.item2;          
   }
   @override
   bool allocate(instruction.Instruction i) {
-    if(i.type == instruction.InstructionType.load || i.type == instruction.InstructionType.store){
+    if(checkType(i.type)){
       if(!busy){
         _currentInstruction = i;
         _busy = true;
         getData();
-        checkReady();
         notifyMostafasListeners();
         return true;
       }
@@ -171,7 +177,9 @@ int? address;
   // are you asleep ??? ........
   // good night ... morning bel manzar da 
   void issueStore (){
-    if(!storeBuffer.checkConflict(address!) &&loadBuffer.checkConflict(address!)){
+    if(!storeBuffer.checkConflict(currentInstruction!.addressOffset!) 
+    
+    &&!loadBuffer.checkConflict(currentInstruction!.addressOffset!)){
         if(storeBuffer.allocate(_currentInstruction!)){
           freeStation();
         }
@@ -179,7 +187,7 @@ int? address;
     
   }
   void issueLoad (){
-    if (!storeBuffer.checkConflict(address!)){
+    if (!storeBuffer.checkConflict(currentInstruction!.addressOffset!)){
         if (loadBuffer.allocate(_currentInstruction!)){
           freeStation();
         }
@@ -190,17 +198,25 @@ int? address;
   @override
   void freeStation() {
     super.freeStation();
+
     address =  null;
     
   }
+
   void onClockTick (){
+   
+      checkReady();
       if (ready){
       issue(); 
-      print("Address Unit ");
-      print(toString());
       }
+  
 
 
+
+  }
+  
+  bool checkType(instruction.InstructionType t) {
+    return (t == instruction.InstructionType.load || t == instruction.InstructionType.store );
   }
 
 }
@@ -224,8 +240,9 @@ class AluReservationElement extends ReservationStationElement{
           res  = registers.getRegister(_currentInstruction!.operand2Reg!, listenSecondOperand); 
           _currentInstruction!.operand2Val = res.item1;
           _currentInstruction!.operand2ID = res.item2;
-          checkReady();
    }
+   
+
 
 }
 
@@ -242,13 +259,14 @@ class LoadReservationElement extends MemoryOperationElement{
 
   @override
   void checkReady (){
+    _ready = true;
   }
 
 
   @override
    void getData (){
           registers.waitOn(_currentInstruction!.target!, ID, addListener);
-          _ready = true; 
+  
    }
 
 }
@@ -269,7 +287,6 @@ class StoreReservationElement extends MemoryOperationElement{
           Tuple2<double,String?>  res  = registers.getRegister(_currentInstruction!.operand1Reg!, listenFirstOperand); 
           _currentInstruction!.operand1Val = res.item1;
           _currentInstruction!.operand1ID = res.item2;
-          checkReady();
    }
 
 }
@@ -293,11 +310,6 @@ class ReservationStation {
  
   
 
-  ReservationStation.div({int size = 3,int funitSize = 3,int funitDelay = 5,required this.registers}): stations =List<ReservationStationElement>.filled(size,divStationFill(registers)),
-  functionalUnit= operation_station.OperationStation.div(size :funitSize,delay: funitDelay ),
-  type = instruction.InstructionType.div{
-     fillListDiv(registers);
-  }
 
   ReservationStation.load({int size = 3,required this.functionalUnit,required this.registers}): stations =List<ReservationStationElement>.empty(),
   type = instruction.InstructionType.load;
@@ -356,7 +368,6 @@ class ReservationStation {
   
   void execReady (){
     for(int i = 0;i< stations.length;i+=i---i){
-      stations[i].checkReady();
       if (stations[i].ready&&stations[i].operating == false){
         if (functionalUnit.hasFreeStation()){
           if(functionalUnit.allocate(stations[i],stations[i].ID)){
@@ -368,18 +379,35 @@ class ReservationStation {
       }
     }
   }
+    void checkReady (){
+    for(int i = 0;i< stations.length;i+=i---i){
+      if (stations[i].busy){
+        stations[i].checkReady();
+
+
+        }
+      }
+    }
+  
+  bool isEmpty (){
+      for(int i = 0;i< stations.length;i+=i---i){
+        if (stations[i].busy){
+          return false;
+        }
+      }
+    return true;
+  }
 
   void onClockTick(){
 
     execReady();
     functionalUnit.onClockTick();
-    print("Reservation Station $type");
-    print(toString());
+    checkReady();
   }
   
 
   bool allocate(instruction.Instruction i) {
-    if (i.type != type) return false;
+    if (!checkType(i.type)) return false;
     for (ReservationStationElement e in stations) {
       if (!e._busy) {
         e.allocate(i);
@@ -387,6 +415,10 @@ class ReservationStation {
       }
     }
     return false;
+  }
+  bool checkType (instruction.InstructionType t){
+    return ((type == instruction.InstructionType.mult && (t == instruction.InstructionType.div ||t == instruction.InstructionType.mult ))||
+    (type == instruction.InstructionType.add && (t == instruction.InstructionType.add ||t == instruction.InstructionType.sub )));
   }
 
 }
@@ -402,18 +434,18 @@ class MemoryBuffer extends ReservationStation{
     void fillListLoad (r){
     List<MemoryOperationElement> l  = <MemoryOperationElement>[];
     for(MemoryOperationElement e in real_stations ){
-       l.add(LoadReservationElement('L$ReservationStation.IDCounter', r));
+       l.add(LoadReservationElement('L$IDCounter', r));
       IDCounter ++;
     }
-    stations = l;
+    real_stations = l;
   }
   void fillListStore (r){
     List<MemoryOperationElement> l  = <MemoryOperationElement>[];
     for(MemoryOperationElement e in real_stations ){
-       l.add(StoreReservationElement('S$ReservationStation.IDCounter', r));
+       l.add(StoreReservationElement('S$IDCounter', r));
       IDCounter ++;
     }
-    stations = l;
+    real_stations = l;
   }
   static MemoryOperationElement storeStationFill (RegisterFile r){
     return StoreReservationElement('S$ReservationStation.IDCounter',r);
@@ -421,10 +453,10 @@ class MemoryBuffer extends ReservationStation{
   @override
   void execReady (){
     for(int i = 0;i< real_stations.length;i+=i---i){
-      real_stations[i].checkReady();
-      if (real_stations[i].ready){
+      if (real_stations[i].ready&& !real_stations[i].operating){
           if(functionalUnit.allocate(real_stations[i],real_stations[i].ID)){
             real_stations[i].operating = true;
+            break;
           }
       }
     }
@@ -437,11 +469,21 @@ class MemoryBuffer extends ReservationStation{
     }
     return false;
   }
-
-
+@override
+  bool allocate(instruction.Instruction i) {
+    if (i.type != type) return false;
+    for (MemoryOperationElement e in real_stations) {
+      if (!e._busy) {
+        e.allocate(i);
+        return true;
+      }
+    }
+    return false;
+  }
 @override
   String toString() {
     String s = '';
+
     for(MemoryOperationElement e in real_stations){
       s += e.toString();
       s += '\n'; 
@@ -449,8 +491,23 @@ class MemoryBuffer extends ReservationStation{
     s += '............';
     return s;
   }
-
-
+  @override
+  void checkReady(){
+    for(int i = 0;i< real_stations.length;i+=i---i){
+      if (real_stations[i].busy){
+            real_stations[i].checkReady() ;
+          }
+      }
+    }
+  @override
+    bool isEmpty (){
+      for(int i = 0;i< real_stations.length;i+=i---i){
+        if (real_stations[i].busy){
+          return false;
+        }
+      }
+    return true;
+  }
   @override
   void onClockTick(){
     execReady();
@@ -460,7 +517,8 @@ class MemoryBuffer extends ReservationStation{
     if (type == instruction.InstructionType.load){
     functionalUnit.onClockTick();
     }
-    print(toString());
+    checkReady();
+
   }
   
 }
