@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-import 'package:tomasulo_simulator/operation_station.dart';
+import 'package:tomasulo_viz/models/operation_station.dart';
 
 import 'instruction.dart';
 import 'register.dart';
@@ -8,25 +8,21 @@ import 'reservation_station.dart';
 
 //initialize thingies, its 7 am in the night, my comments are not going to make a lot of sense
 RegisterFile registerFile = RegisterFile();
-MemOperationStation memory = MemOperationStation(delay:2);
-ReservationStation addStation = ReservationStation.add(registers:registerFile,funitDelay: 2,size: 1,funitSize: 1);
-ReservationStation multStation = ReservationStation.mult(registers:registerFile,funitDelay: 3,size: 2,funitSize:2);
-MemoryBuffer loadBuffer = MemoryBuffer.load(functionalUnit: memory, registers: registerFile,size: 1);
-MemoryBuffer storeBuffer = MemoryBuffer.store(functionalUnit: memory, registers: registerFile,size: 1);
-AddressUnit addressUnit = AddressUnit('AU', registerFile, loadBuffer, storeBuffer);
-InstructionQueue instructionQueue = InstructionQueue (<Instruction>[] ,addStation,multStation,addressUnit);
+MemOperationStation memory = MemOperationStation(delay: 2);
+ReservationStation addStation = ReservationStation.add(
+    registers: registerFile, funitDelay: 2, size: 1, funitSize: 1);
+ReservationStation multStation = ReservationStation.mult(
+    registers: registerFile, funitDelay: 3, size: 2, funitSize: 2);
+MemoryBuffer loadBuffer =
+    MemoryBuffer.load(functionalUnit: memory, registers: registerFile, size: 1);
+MemoryBuffer storeBuffer = MemoryBuffer.store(
+    functionalUnit: memory, registers: registerFile, size: 1);
+AddressUnit addressUnit =
+    AddressUnit('AU', registerFile, loadBuffer, storeBuffer);
+InstructionQueue instructionQueue =
+    InstructionQueue(<Instruction>[], addStation, multStation, addressUnit);
 
-
-
-
-
-
-
-
-
-
-void onClockTick(){
-
+void onClockTick() {
   print(instructionQueue.getCurrentInstruction());
   instructionQueue.onClockTick();
   addStation.onClockTick();
@@ -37,8 +33,8 @@ void onClockTick(){
   print(registerFile);
   print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
   print("\n");
-
 }
+
 void regCall() {}
 
 void main() {
@@ -57,39 +53,29 @@ void main() {
   // instructionQueue.instructionQueue.add(Instruction.div(target: 'R6', operand1Reg: 'R4', operand2Reg:'R5'));
   // instructionQueue.instructionQueue.add(Instruction.store(operand1Reg: 'R6', operand2Reg: 'R1', addressOffset:12));
 
-
-
-
-
-
-
-//  apply add fix to rest of instructions 
+//  apply add fix to rest of instructions
 // test ba2y el instructions
 
+  // for(int i=0 ; i<50 ; i++)
+  // {
+  //   print("Cycle : $i");
+  //   onClockTick();
 
-    // for(int i=0 ; i<50 ; i++)
-    // {
-    //   print("Cycle : $i");
-    //   onClockTick();
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('\n');
+  //   print('End Cycle');
+  // }
 
-
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('\n');
-    //   print('End Cycle');
-    // }
-    
   // Clock c = Clock();
   // c.runToFinish();
-
-
 }

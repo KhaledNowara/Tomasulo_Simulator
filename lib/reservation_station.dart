@@ -1,6 +1,4 @@
-import 'dart:collection';
-
-import 'package:tomasulo_simulator/tomasulo_simulator.dart';
+import 'package:flutter/cupertino.dart';
 
 import 'instruction.dart' as instruction;
 import 'register.dart';
@@ -8,34 +6,35 @@ import 'register.dart';
 import 'operation_station.dart' as operation_station;
 import 'package:tuple/tuple.dart';
 
-abstract class ReservationStationElement {
+abstract class ReservationStationElement extends ChangeNotifier {
   final String ID;
   bool _busy = false;
   bool operating = false;
   bool get busy => _busy;
   instruction.Instruction? _currentInstruction;
   instruction.Instruction? get currentInstruction => _currentInstruction;
-  bool _ready = false ;
+  bool _ready = false;
   bool get ready => _ready;
   List<Function(double)> listeners = <Function(double)>[];
-  List<Function()> MostafsListeners = <Function()>[];
   RegisterFile registers;
 
-  ReservationStationElement(this.ID,this.registers);
-  void checkReady ();
+  ReservationStationElement(this.ID, this.registers);
+  void checkReady();
 
-  instruction.InstructionType? getType (){
+  instruction.InstructionType? getType() {
     return _currentInstruction?.type;
   }
+
   @override
-  String toString (){
-    return('busy : $busy, ready : $ready, $currentInstruction');
+  String toString() {
+    return ('busy : $busy, ready : $ready, $currentInstruction');
   }
-  void freeStation (){
+
+  void freeStation() {
     _busy = false;
     _ready = false;
     operating = false;
-    notifyMostafasListeners();
+    notifyListeners();
   }
 
   void allocate(instruction.Instruction i) {
@@ -43,33 +42,18 @@ abstract class ReservationStationElement {
     _busy = true;
     _ready = false;
     getData();
-    notifyMostafasListeners();
+    notifyListeners();
   }
 
-  void addListener(Function(double) f) {
+  void addDataListener(Function(double) f) {
     listeners.add(f);
   }
 
-  void addMostafasListener(Function() f) {
-    MostafsListeners.add(f);
-  }
-
-  void notifyListeners(double data) {
-    while (listeners.isNotEmpty){
+  void notifyDataListeners(double data) {
+    while (listeners.isNotEmpty) {
       listeners.first(data);
       listeners.removeAt(0);
     }
-
-  }
-
-  void notifyMostafasListeners() {
-    for (Function() f in MostafsListeners) {
-      f();
-    }
-  }
-
-  void removeMostafsListner(Function(String) f) {
-    MostafsListeners.remove(f);
   }
 
   void removeListner(Function(double) f) {
@@ -82,7 +66,7 @@ abstract class ReservationStationElement {
       _currentInstruction!.operand1ID = null;
       checkReady();
 
-      notifyMostafasListeners();
+      notifyListeners();
     }
   }
 
@@ -90,7 +74,7 @@ abstract class ReservationStationElement {
     if (_currentInstruction != null) {
       _currentInstruction!.operand2Val = data;
       _currentInstruction!.operand2ID = null;
-      notifyMostafasListeners();
+      notifyListeners();
       checkReady();
     }
   }
@@ -98,62 +82,66 @@ abstract class ReservationStationElement {
   void getData();
 }
 
+class AddressUnit extends ReservationStationElement {
+  MemoryBuffer loadBuffer;
+  MemoryBuffer storeBuffer;
+  int? address;
 
-class AddressUnit extends ReservationStationElement{
-MemoryBuffer loadBuffer;
-MemoryBuffer storeBuffer;
-int? address;
-
-  AddressUnit(super.ID, super.registers,this.loadBuffer, this.storeBuffer); 
-
+  AddressUnit(super.ID, super.registers, this.loadBuffer, this.storeBuffer);
 
   @override
   void checkReady() {
-      if(!_busy) {_ready = false;}
-      else{
-      _ready = _currentInstruction!.operand2ID ==null;
-      }
+    if (!_busy) {
+      _ready = false;
+    } else {
+      _ready = _currentInstruction!.operand2ID == null;
+    }
   }
-
 
   @override
   void getData() {
-        if (_currentInstruction!.target != null){
-          registers.waitOn(_currentInstruction!.target!, ID, addListener);
-        }
-         Tuple2<double,String?> res  = registers.getRegister(_currentInstruction!.operand2Reg!, listenSecondOperand); 
-          _currentInstruction!.operand2Val = res.item1;
-          _currentInstruction!.operand2ID = res.item2;          
+    if (_currentInstruction!.target != null) {
+      registers.waitOn(_currentInstruction!.target!, ID, addDataListener);
+    }
+    Tuple2<double, String?> res = registers.getRegister(
+        _currentInstruction!.operand2Reg!, listenSecondOperand);
+    _currentInstruction!.operand2Val = res.item1;
+    _currentInstruction!.operand2ID = res.item2;
   }
+
   @override
   bool allocate(instruction.Instruction i) {
-    if(checkType(i.type)){
-      if(!busy){
+    if (checkType(i.type)) {
+      if (!busy) {
         _currentInstruction = i;
         _busy = true;
         getData();
-        notifyMostafasListeners();
+        notifyListeners();
         return true;
       }
     }
     return false;
   }
+
   @override
-  void listenSecondOperand (double data){
-    if (_currentInstruction!=null){
+  void listenSecondOperand(double data) {
+    if (_currentInstruction != null) {
       _currentInstruction!.operand2Val = data;
       _currentInstruction!.operand2ID = null;
       address = (data + _currentInstruction!.addressOffset!).round();
       checkReady();
-
     }
   }
 
-  void issue (){
-    switch (_currentInstruction!.type){
-      case instruction.InstructionType.load :issueLoad(); break;
-      case instruction.InstructionType.store :issueStore(); break;
-      
+  void issue() {
+    switch (_currentInstruction!.type) {
+      case instruction.InstructionType.load:
+        issueLoad();
+        break;
+      case instruction.InstructionType.store:
+        issueStore();
+        break;
+
       case instruction.InstructionType.add:
         // TODO: Handle this case.
         break;
@@ -174,54 +162,48 @@ int? address;
         break;
     }
   }
-  // are you asleep ??? ........
-  // good night ... morning bel manzar da 
-  void issueStore (){
-    if(!storeBuffer.checkConflict(currentInstruction!.addressOffset!) 
-    
-    &&!loadBuffer.checkConflict(currentInstruction!.addressOffset!)){
-        if(storeBuffer.allocate(_currentInstruction!)){
-          freeStation();
-        }
-    }
-    
-  }
-  void issueLoad (){
-    if (!storeBuffer.checkConflict(currentInstruction!.addressOffset!)){
-        if (loadBuffer.allocate(_currentInstruction!)){
-          freeStation();
-        }
-    }
-  
 
+  // are you asleep ??? ........
+  // good night ... morning bel manzar da
+  void issueStore() {
+    if (!storeBuffer.checkConflict(currentInstruction!.addressOffset!) &&
+        !loadBuffer.checkConflict(currentInstruction!.addressOffset!)) {
+      if (storeBuffer.allocate(_currentInstruction!)) {
+        freeStation();
+      }
+    }
   }
+
+  void issueLoad() {
+    if (!storeBuffer.checkConflict(currentInstruction!.addressOffset!)) {
+      if (loadBuffer.allocate(_currentInstruction!)) {
+        freeStation();
+      }
+    }
+  }
+
   @override
   void freeStation() {
     super.freeStation();
 
-    address =  null;
-    
+    address = null;
   }
 
-  void onClockTick (){
-   
-      checkReady();
-      if (ready){
-      issue(); 
-      }
-  
-
-
-
+  void onClockTick() {
+    checkReady();
+    if (ready) {
+      issue();
+    }
   }
-  
+
   bool checkType(instruction.InstructionType t) {
-    return (t == instruction.InstructionType.load || t == instruction.InstructionType.store );
+    return (t == instruction.InstructionType.load ||
+        t == instruction.InstructionType.store);
   }
-
 }
-class AluReservationElement extends ReservationStationElement{
-  AluReservationElement(super.ID,super.registers);
+
+class AluReservationElement extends ReservationStationElement {
+  AluReservationElement(super.ID, super.registers);
 
   @override
   void checkReady() {
@@ -232,47 +214,41 @@ class AluReservationElement extends ReservationStationElement{
   }
 
   @override
-   void getData (){
-          registers.waitOn(_currentInstruction!.target!, ID, addListener);
-          Tuple2<double,String?>  res  = registers.getRegister(_currentInstruction!.operand1Reg!, listenFirstOperand); 
-          _currentInstruction!.operand1Val = res.item1;
-          _currentInstruction!.operand1ID = res.item2;
-          res  = registers.getRegister(_currentInstruction!.operand2Reg!, listenSecondOperand); 
-          _currentInstruction!.operand2Val = res.item1;
-          _currentInstruction!.operand2ID = res.item2;
-   }
-   
-
-
+  void getData() {
+    registers.waitOn(_currentInstruction!.target!, ID, addDataListener);
+    Tuple2<double, String?> res = registers.getRegister(
+        _currentInstruction!.operand1Reg!, listenFirstOperand);
+    _currentInstruction!.operand1Val = res.item1;
+    _currentInstruction!.operand1ID = res.item2;
+    res = registers.getRegister(
+        _currentInstruction!.operand2Reg!, listenSecondOperand);
+    _currentInstruction!.operand2Val = res.item1;
+    _currentInstruction!.operand2ID = res.item2;
+  }
 }
 
 abstract class MemoryOperationElement extends ReservationStationElement {
-    double? address;
+  double? address;
 
   MemoryOperationElement(super.ID, super.registers);
-    
-    
 }
-class LoadReservationElement extends MemoryOperationElement{
 
-  LoadReservationElement(super.ID,super.registers);
+class LoadReservationElement extends MemoryOperationElement {
+  LoadReservationElement(super.ID, super.registers);
 
   @override
-  void checkReady (){
+  void checkReady() {
     _ready = true;
   }
 
-
   @override
-   void getData (){
-          registers.waitOn(_currentInstruction!.target!, ID, addListener);
-  
-   }
-
+  void getData() {
+    registers.waitOn(_currentInstruction!.target!, ID, addDataListener);
+  }
 }
-class StoreReservationElement extends MemoryOperationElement{
-  StoreReservationElement(super.ID,super.registers);
 
+class StoreReservationElement extends MemoryOperationElement {
+  StoreReservationElement(super.ID, super.registers);
 
   @override
   void checkReady() {
@@ -282,13 +258,12 @@ class StoreReservationElement extends MemoryOperationElement{
   }
 
   @override
-
-   void getData (){
-          Tuple2<double,String?>  res  = registers.getRegister(_currentInstruction!.operand1Reg!, listenFirstOperand); 
-          _currentInstruction!.operand1Val = res.item1;
-          _currentInstruction!.operand1ID = res.item2;
-   }
-
+  void getData() {
+    Tuple2<double, String?> res = registers.getRegister(
+        _currentInstruction!.operand1Reg!, listenFirstOperand);
+    _currentInstruction!.operand1Val = res.item1;
+    _currentInstruction!.operand1ID = res.item2;
+  }
 }
 
 class ReservationStation {
@@ -296,115 +271,128 @@ class ReservationStation {
   instruction.InstructionType type;
   late List<ReservationStationElement> stations;
 
-  RegisterFile registers; 
-  int IDCounter = 0; 
-  ReservationStation.add({int size = 3,int funitSize = 3,int funitDelay = 5,required this.registers}): stations =List<ReservationStationElement>.filled(size,addStationFill(registers)),
-  functionalUnit= operation_station.OperationStation.add(size :funitSize,delay: funitDelay ),
-  type = instruction.InstructionType.add{
-    fillListAdd(registers);}
+  RegisterFile registers;
+  int IDCounter = 0;
+  ReservationStation.add(
+      {int size = 3,
+      int funitSize = 3,
+      int funitDelay = 5,
+      required this.registers})
+      : stations = List<ReservationStationElement>.filled(
+            size, addStationFill(registers)),
+        functionalUnit = operation_station.OperationStation.add(
+            size: funitSize, delay: funitDelay),
+        type = instruction.InstructionType.add {
+    fillListAdd(registers);
+  }
 
-  ReservationStation.mult({int size = 3,int funitSize = 3,int funitDelay = 5,required this.registers}): stations =List<ReservationStationElement>.filled(size,multStationFill(registers)),
-  functionalUnit= operation_station.OperationStation.mult(size :funitSize,delay: funitDelay ),
-  type = instruction.InstructionType.mult{
-    fillListMult(registers);}
- 
-  
+  ReservationStation.mult(
+      {int size = 3,
+      int funitSize = 3,
+      int funitDelay = 5,
+      required this.registers})
+      : stations = List<ReservationStationElement>.filled(
+            size, multStationFill(registers)),
+        functionalUnit = operation_station.OperationStation.mult(
+            size: funitSize, delay: funitDelay),
+        type = instruction.InstructionType.mult {
+    fillListMult(registers);
+  }
 
+  ReservationStation.load(
+      {int size = 3, required this.functionalUnit, required this.registers})
+      : stations = List<ReservationStationElement>.empty(),
+        type = instruction.InstructionType.load;
 
-  ReservationStation.load({int size = 3,required this.functionalUnit,required this.registers}): stations =List<ReservationStationElement>.empty(),
-  type = instruction.InstructionType.load;
+  ReservationStation.store(
+      {int size = 3, required this.functionalUnit, required this.registers})
+      : stations = List<ReservationStationElement>.empty(),
+        type = instruction.InstructionType.store;
 
-  ReservationStation.store({int size = 3,required this.functionalUnit,required this.registers}): stations =List<ReservationStationElement>.empty(),
-  type = instruction.InstructionType.store;  
-
-@override
+  @override
   String toString() {
     String s = '';
-    for(ReservationStationElement e in stations){
+    for (ReservationStationElement e in stations) {
       s += e.toString();
-      s += '\n'; 
+      s += '\n';
     }
     s += '............';
     return s;
   }
 
-  static ReservationStationElement addStationFill (RegisterFile r){
-
+  static ReservationStationElement addStationFill(RegisterFile r) {
     return AluReservationElement('A', r);
   }
-    static ReservationStationElement multStationFill (RegisterFile r){
 
+  static ReservationStationElement multStationFill(RegisterFile r) {
     return AluReservationElement('M', r);
   }
 
-   void fillListAdd (r){
-    List<ReservationStationElement> l  = <ReservationStationElement>[];
-    for(ReservationStationElement e in stations ){
-       l.add(AluReservationElement('A$IDCounter', r));
-      IDCounter ++;
+  void fillListAdd(r) {
+    List<ReservationStationElement> l = <ReservationStationElement>[];
+    for (ReservationStationElement e in stations) {
+      l.add(AluReservationElement('A$IDCounter', r));
+      IDCounter++;
     }
     stations = l;
   }
-  void fillListMult (r){
-    List<ReservationStationElement> l  = <ReservationStationElement>[];
-    for(ReservationStationElement e in stations ){
-       l.add(AluReservationElement('M$IDCounter', r));
-      IDCounter ++;
+
+  void fillListMult(r) {
+    List<ReservationStationElement> l = <ReservationStationElement>[];
+    for (ReservationStationElement e in stations) {
+      l.add(AluReservationElement('M$IDCounter', r));
+      IDCounter++;
     }
     stations = l;
   }
-    void fillListDiv (r){
-    List<ReservationStationElement> l  = <ReservationStationElement>[];
-    for(ReservationStationElement e in stations ){
-       l.add(AluReservationElement('D$IDCounter', r));
-      IDCounter ++;
+
+  void fillListDiv(r) {
+    List<ReservationStationElement> l = <ReservationStationElement>[];
+    for (ReservationStationElement e in stations) {
+      l.add(AluReservationElement('D$IDCounter', r));
+      IDCounter++;
     }
     stations = l;
   }
+
   static ReservationStationElement divStationFill(RegisterFile r) {
     return AluReservationElement('D', r);
   }
 
-  
-  void execReady (){
-    for(int i = 0;i< stations.length;i+=i---i){
-      if (stations[i].ready&&stations[i].operating == false){
-        if (functionalUnit.hasFreeStation()){
-          if(functionalUnit.allocate(stations[i],stations[i].ID)){
+  void execReady() {
+    for (int i = 0; i < stations.length; i += i-- - i) {
+      if (stations[i].ready && stations[i].operating == false) {
+        if (functionalUnit.hasFreeStation()) {
+          if (functionalUnit.allocate(stations[i], stations[i].ID)) {
             stations[i].operating = true;
           }
-
-
         }
       }
     }
   }
-    void checkReady (){
-    for(int i = 0;i< stations.length;i+=i---i){
-      if (stations[i].busy){
+
+  void checkReady() {
+    for (int i = 0; i < stations.length; i += i-- - i) {
+      if (stations[i].busy) {
         stations[i].checkReady();
-
-
-        }
       }
     }
-  
-  bool isEmpty (){
-      for(int i = 0;i< stations.length;i+=i---i){
-        if (stations[i].busy){
-          return false;
-        }
+  }
+
+  bool isEmpty() {
+    for (int i = 0; i < stations.length; i += i-- - i) {
+      if (stations[i].busy) {
+        return false;
       }
+    }
     return true;
   }
 
-  void onClockTick(){
-
+  void onClockTick() {
     execReady();
     functionalUnit.onClockTick();
     checkReady();
   }
-  
 
   bool allocate(instruction.Instruction i) {
     if (!checkType(i.type)) return false;
@@ -416,60 +404,83 @@ class ReservationStation {
     }
     return false;
   }
-  bool checkType (instruction.InstructionType t){
-    return ((type == instruction.InstructionType.mult && (t == instruction.InstructionType.div ||t == instruction.InstructionType.mult ))||
-    (type == instruction.InstructionType.add && (t == instruction.InstructionType.add ||t == instruction.InstructionType.sub )));
-  }
 
+  bool checkType(instruction.InstructionType t) {
+    return ((type == instruction.InstructionType.mult &&
+            (t == instruction.InstructionType.div ||
+                t == instruction.InstructionType.mult)) ||
+        (type == instruction.InstructionType.add &&
+            (t == instruction.InstructionType.add ||
+                t == instruction.InstructionType.sub)));
+  }
 }
-class MemoryBuffer extends ReservationStation{
+
+class MemoryBuffer extends ReservationStation {
   List<MemoryOperationElement> real_stations;
 
-  MemoryBuffer.load({int size = 3,required super.functionalUnit, required super.registers}) :real_stations =List<MemoryOperationElement>.filled(size,loadStationFill(registers)), super.load(){fillListLoad(registers);}
-  MemoryBuffer.store({int size = 3,required super.functionalUnit, required super.registers}) : real_stations =List<MemoryOperationElement>.filled(size,storeStationFill(registers)),super.store(){fillListStore(registers);}
+  MemoryBuffer.load(
+      {int size = 3, required super.functionalUnit, required super.registers})
+      : real_stations = List<MemoryOperationElement>.filled(
+            size, loadStationFill(registers)),
+        super.load() {
+    fillListLoad(registers);
+  }
+  MemoryBuffer.store(
+      {int size = 3, required super.functionalUnit, required super.registers})
+      : real_stations = List<MemoryOperationElement>.filled(
+            size, storeStationFill(registers)),
+        super.store() {
+    fillListStore(registers);
+  }
 
-  static MemoryOperationElement loadStationFill (RegisterFile r){
-    return LoadReservationElement('L$ReservationStation.IDCounter',r);
+  static MemoryOperationElement loadStationFill(RegisterFile r) {
+    return LoadReservationElement('L$ReservationStation.IDCounter', r);
   }
-    void fillListLoad (r){
-    List<MemoryOperationElement> l  = <MemoryOperationElement>[];
-    for(MemoryOperationElement e in real_stations ){
-       l.add(LoadReservationElement('L$IDCounter', r));
-      IDCounter ++;
+
+  void fillListLoad(r) {
+    List<MemoryOperationElement> l = <MemoryOperationElement>[];
+    for (MemoryOperationElement e in real_stations) {
+      l.add(LoadReservationElement('L$IDCounter', r));
+      IDCounter++;
     }
     real_stations = l;
   }
-  void fillListStore (r){
-    List<MemoryOperationElement> l  = <MemoryOperationElement>[];
-    for(MemoryOperationElement e in real_stations ){
-       l.add(StoreReservationElement('S$IDCounter', r));
-      IDCounter ++;
+
+  void fillListStore(r) {
+    List<MemoryOperationElement> l = <MemoryOperationElement>[];
+    for (MemoryOperationElement e in real_stations) {
+      l.add(StoreReservationElement('S$IDCounter', r));
+      IDCounter++;
     }
     real_stations = l;
   }
-  static MemoryOperationElement storeStationFill (RegisterFile r){
-    return StoreReservationElement('S$ReservationStation.IDCounter',r);
-  }  
+
+  static MemoryOperationElement storeStationFill(RegisterFile r) {
+    return StoreReservationElement('S$ReservationStation.IDCounter', r);
+  }
+
   @override
-  void execReady (){
-    for(int i = 0;i< real_stations.length;i+=i---i){
-      if (real_stations[i].ready&& !real_stations[i].operating){
-          if(functionalUnit.allocate(real_stations[i],real_stations[i].ID)){
-            real_stations[i].operating = true;
-            break;
-          }
+  void execReady() {
+    for (int i = 0; i < real_stations.length; i += i-- - i) {
+      if (real_stations[i].ready && !real_stations[i].operating) {
+        if (functionalUnit.allocate(real_stations[i], real_stations[i].ID)) {
+          real_stations[i].operating = true;
+          break;
+        }
       }
     }
   }
-  bool checkConflict (int c_address){
-    for(MemoryOperationElement e in real_stations){
-      if (e.address ==c_address){
+
+  bool checkConflict(int c_address) {
+    for (MemoryOperationElement e in real_stations) {
+      if (e.address == c_address) {
         return true;
       }
     }
     return false;
   }
-@override
+
+  @override
   bool allocate(instruction.Instruction i) {
     if (i.type != type) return false;
     for (MemoryOperationElement e in real_stations) {
@@ -480,46 +491,47 @@ class MemoryBuffer extends ReservationStation{
     }
     return false;
   }
-@override
+
+  @override
   String toString() {
     String s = '';
 
-    for(MemoryOperationElement e in real_stations){
+    for (MemoryOperationElement e in real_stations) {
       s += e.toString();
-      s += '\n'; 
+      s += '\n';
     }
     s += '............';
     return s;
   }
+
   @override
-  void checkReady(){
-    for(int i = 0;i< real_stations.length;i+=i---i){
-      if (real_stations[i].busy){
-            real_stations[i].checkReady() ;
-          }
+  void checkReady() {
+    for (int i = 0; i < real_stations.length; i += i-- - i) {
+      if (real_stations[i].busy) {
+        real_stations[i].checkReady();
       }
     }
+  }
+
   @override
-    bool isEmpty (){
-      for(int i = 0;i< real_stations.length;i+=i---i){
-        if (real_stations[i].busy){
-          return false;
-        }
+  bool isEmpty() {
+    for (int i = 0; i < real_stations.length; i += i-- - i) {
+      if (real_stations[i].busy) {
+        return false;
       }
+    }
     return true;
   }
+
   @override
-  void onClockTick(){
+  void onClockTick() {
     execReady();
-    // do not judge 
-    // very very very important that to call the clock tick of the store before the load 
-    //very very very important 
-    if (type == instruction.InstructionType.load){
-    functionalUnit.onClockTick();
+    // do not judge
+    // very very very important that to call the clock tick of the store before the load
+    //very very very important
+    if (type == instruction.InstructionType.load) {
+      functionalUnit.onClockTick();
     }
     checkReady();
-
   }
-  
 }
-
